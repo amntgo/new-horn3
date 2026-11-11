@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>بوري 3 سوداني</title>
+<style>
+:root{--bg:#f1ede6;--fg:#2b2622;--muted:#7a7065;--panel:#1c1a19;--panel2:#2a2725;--card:#fff;--line:#d8d0c4;--red:#e0332e;--red2:#8f1512;--acc:#c9892b;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121110;--fg:#efe9e0;--muted:#a1968a;--panel:#050505;--panel2:#1d1b19;--card:#1b1918;--line:#38332e}}
+:root[data-theme="dark"]{--bg:#121110;--fg:#efe9e0;--muted:#a1968a;--panel:#050505;--panel2:#1d1b19;--card:#1b1918;--line:#38332e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+header{width:100%;display:flex;align-items:center;gap:12px}
+header h1{margin:0;font-size:24px;flex:1;text-align:center;color:var(--acc)}
+.ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:22px;cursor:pointer;display:grid;place-items:center}
+.disc{width:min(80vw,62vh,360px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--panel2),var(--panel) 70%);border:6px solid #3a3633;box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 0 0 3px #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7%;touch-action:none}
+.key{width:30%;aspect-ratio:1;border-radius:50%;border:0;cursor:pointer;padding:0;background:radial-gradient(circle at 35% 30%,#ff7b74,var(--red) 45%,var(--red2));box-shadow:0 5px 0 #5c0b09,0 8px 14px rgba(0,0,0,.5);touch-action:none;transition:transform .05s,box-shadow .05s}
+.key.on{transform:translateY(4px);box-shadow:0 1px 0 #5c0b09,0 2px 6px rgba(0,0,0,.5);filter:brightness(1.18)}
+footer{color:var(--muted);font-size:14px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s;z-index:5}
+.scrim.open{opacity:1;pointer-events:auto}
+aside{position:fixed;top:0;bottom:0;right:0;width:min(86vw,340px);background:var(--card);border-left:1px solid var(--line);z-index:6;transform:translateX(105%);transition:transform .25s;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+aside.open{transform:none;box-shadow:-8px 0 30px rgba(0,0,0,.4)}
+aside .top{display:flex;align-items:center;justify-content:space-between}
+aside h2{margin:0;font-size:18px}
+aside label{font-size:14px;color:var(--muted);display:block;margin-bottom:4px}
+aside select{width:100%;font:inherit;padding:9px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+aside input[type=range]{width:100%}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+hr{border:0;border-top:1px solid var(--line);width:100%;margin:2px 0}
+</style>
+</head>
+<body>
+<header>
+  <button class="ic" id="menu" aria-label="القائمة">☰</button>
+  <h1>بوري 3 سوداني</h1>
+  <span style="width:44px"></span>
+</header>
+
+<div class="disc" id="disc"></div>
+<footer>تصميم محمد حسون</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside id="side">
+  <div class="top"><h2>الإعدادات</h2><button class="ic" id="close" aria-label="إغلاق">✕</button></div>
+  <div><label for="pre">نوع الصوت</label><select id="pre"></select></div>
+  <div><label for="oct">طبقة الصوت</label><select id="oct"></select></div>
+  <div><label for="vol">مستوى الصوت</label><input type="range" id="vol" min="0.1" max="1" step="0.05" value="0.6"></div>
+  <hr>
+  <div><label for="root">نغمة الأساس (السلم الخماسي)</label><select id="root"></select></div>
+  <div><label for="k3">الزر العلوي</label><select id="k3"></select></div>
+  <div><label for="k2">الزر الأوسط</label><select id="k2"></select></div>
+  <div><label for="k1">الزر السفلي</label><select id="k1"></select></div>
+  <hr>
+  <div class="row"><label for="hv" style="margin:0">الصوت بمجرد التمرير</label><input type="checkbox" id="hv" checked></div>
+</aside>
+
+<script>
+const $=id=>document.getElementById(id);
+const NAMES=["دو","دو#","ري","ري#","مي","فا","فا#","صول","صول#","لا","لا#","سي"];
+const PENT=[0,2,4,7,9];
+const BASE_C3=130.8128;
+const state={root:2,deg:[0,1,2],oct:1,preset:0};
+const semis=d=>PENT[d%5]+12*Math.floor(d/5);
+const freqOf=d=>BASE_C3*Math.pow(2,(state.oct*12+state.root+semis(d))/12);
+const noteName=d=>NAMES[(state.root+semis(d))%12];
+
+// ===== مكتبة الأصوات =====
+const S=(n,q)=>Array.from({length:n},(_,i)=>1/Math.pow(i+1,q));
+const O=(n,q)=>Array.from({length:n},(_,i)=>i%2?0:1/Math.pow(i+1,q));
+const D={a:.04,dec:.2,s:.9,b0:4,b1:6,fa:.1,vib:0,vr:5.5,vd:.3,r:.12,det:[0],vol:1,nz:0,q:.8,ip:null};
+const RAW=[
+// نحاسيات
+["باريتون","نحاسيات",[1,.8,.55,.35,.22,.14,.09,.05],{a:.05,dec:.3,s:.8,b0:2.5,b1:5,fa:.15,vib:6,det:[0,5]}],
+["بوري (ترومبيت)","نحاسيات",[1,.9,.85,.75,.6,.5,.4,.3,.22,.15,.1],{a:.03,s:.85,b0:3,b1:9,fa:.08,vib:5,vd:.4}],
+["ترومبون","نحاسيات",[1,.75,.55,.4,.28,.18,.1,.06],{a:.07,b0:2.5,b1:5.5,fa:.12,vib:4,vd:.5,det:[0,4]}],
+["هورن فرنسي","نحاسيات",[1,.6,.35,.2,.12,.07],{a:.09,b0:2,b1:3.5,fa:.2,vib:4,vd:.5,r:.15,det:[0,6]}],
+["كورنيت","نحاسيات",[1,.9,.7,.5,.35,.25,.15,.1],{a:.04,b0:3,b1:7,vib:4,vd:.4}],
+["فلوغل هورن","نحاسيات",[1,.6,.3,.15,.08],{a:.07,b0:2.5,b1:3.5,vib:5}],
+["يوفونيوم","نحاسيات",[1,.7,.45,.28,.17,.1,.06],{a:.06,b0:2,b1:4,vib:4,det:[0,4]}],
+["توبا","نحاسيات",[1,.6,.3,.15,.08,.04],{a:.1,b0:1.8,b1:3,r:.15}],
+["ترومبيت مكتوم","نحاسيات",[1,.3,.9,.6,.8,.4,.5,.2],{a:.03,b0:4,b1:6,q:2.5}],
+["فرقة نحاسيات","نحاسيات",[1,.8,.7,.6,.5,.4,.3,.2,.1],{a:.08,b0:3,b1:8,vib:3,det:[-10,0,10]}],
+// آلات نفخ
+["ساكسفون ألتو","آلات نفخ",[1,.6,.7,.4,.45,.25,.25,.12],{a:.05,b0:3.5,b1:6.5,vib:5,nz:.02}],
+["ساكسفون تينور","آلات نفخ",[1,.55,.6,.35,.35,.2,.2,.1],{a:.06,b0:3,b1:5,vib:5,nz:.02}],
+["ساكسفون سوبرانو","آلات نفخ",[1,.4,.8,.3,.6,.2,.4,.15,.2],{a:.05,b0:4,b1:8,vib:6}],
+["كلارينت","آلات نفخ",[1,0,.55,0,.3,0,.15,0,.08],{a:.05,b0:4,b1:8,vib:3,vd:.5}],
+["فلوت","آلات نفخ",[1,.12,.04],{a:.09,b0:6,b1:6,vib:7,vd:.3,r:.15,nz:.02}],
+["ناي","آلات نفخ",[1,.1,.03],{a:.12,b0:5,b1:5,vib:9,r:.2,nz:.07}],
+["بيكولو","آلات نفخ",[1,.1],{a:.06,b0:8,b1:8,vib:6,nz:.03}],
+["أوبوا","آلات نفخ",[1,.8,.9,.7,.6,.4,.3,.2,.1,.05],{a:.05,b0:5,b1:7,vib:5}],
+["باصون","آلات نفخ",[1,.7,.8,.5,.4,.25,.15,.1],{a:.06,b0:2.5,b1:4,vib:4}],
+["ريكوردر","آلات نفخ",[1,0,.15,0,.05],{a:.05,b0:6,b1:6,nz:.015,vib:3}],
+["هارمونيكا","آلات نفخ",S(10,.9),{a:.03,b0:5,b1:7,vib:5,det:[-6,6],nz:.01}],
+["مزمار","آلات نفخ",[1,.9,.95,.85,.8,.7,.6,.5,.4,.3,.2,.1],{a:.03,b0:4,b1:9,vib:8,vr:6,vd:.2,r:.08,det:[0,12]}],
+["زرنة","آلات نفخ",S(14,.5),{a:.03,b0:5,b1:8,q:4,vib:8,vr:6.5,vd:.15,r:.08,det:[0,10],vol:.8}],
+["مزمار قربة","آلات نفخ",[1,.9,.8,.9,.7,.6,.5,.5,.4,.3,.2,.2],{a:.02,b0:6,b1:6,det:[0,-1200],vol:.8}],
+// أورغ وآلات لسانية
+["أورغ كنسي","أورغ",[1,.9,.6,.4,0,.3,0,.15],{a:.015,b0:12,b1:12,s:1,r:.07}],
+["أورغ أنابيب","أورغ",[1,.6,.5,.3,.2,.15,.1,.05],{a:.03,b0:10,b1:10,s:1,r:.15}],
+["أورغ كامل","أورغ",[1,1,.8,.7,.6,.5,.4,.3,.2,.1],{a:.02,b0:10,b1:10,s:1,r:.15,det:[0,1200],vol:.8}],
+["أورغ هاموند","أورغ",[1,.9,.6,.5,0,.4,0,.3],{a:.01,b0:12,b1:12,s:1,r:.06,vib:9,vr:6.7,vd:0}],
+["أورغ جاز","أورغ",[1,.8,.8,0,0,.6,0,.4],{a:.01,b0:12,b1:12,s:1,r:.06,vib:6,vr:6.7,vd:0}],
+["أورغ روك","أورغ",[1,.9,.8,.7,.6,.5,.4,.3],{a:.01,b0:12,b1:14,q:2,s:1,r:.06}],
+["أورغ ريد","أورغ",[1,.3,.75,.2,.5,.15,.3,.1],{a:.03,b0:7,b1:7,vib:3,det:[-4,4]}],
+["هارمونيوم","أورغ",[1,.5,.7,.4,.45,.3,.25,.15,.1],{a:.04,b0:6,b1:6,det:[-5,5]}],
+["أكورديون","أورغ",[1,.7,.6,.5,.4,.3,.25,.2],{a:.025,b0:6,b1:7,r:.08,det:[-8,0,8]}],
+["ميلوديكا","أورغ",[1,.3,.6,.2,.4,.1,.2],{a:.03,b0:6,b1:6,vib:4,nz:.015}],
+// أوتار
+["عود (قطف)","أوتار",[1,.7,.45,.3,.2,.1],{a:.003,dec:1.2,s:.002,b0:14,b1:4,fa:.25,r:.2}],
+["قانون","أوتار",[1,.8,.6,.45,.3,.2,.12,.08],{a:.003,dec:.9,s:.002,b0:16,b1:6,fa:.2,r:.2,det:[0,3]}],
+["طنبور","أوتار",[1,.9,.7,.6,.5,.4,.3,.25,.2,.15],{a:.004,dec:.8,s:.01,b0:10,b1:5,fa:.2,q:2,r:.15,det:[0,8]}],
+["رباب","أوتار",[1,.7,.9,.5,.6,.3,.35,.15,.2],{a:.1,b0:3,b1:5,q:2.5,vib:6,vr:5.8,vd:.2,r:.15,nz:.01}],
+["كمان","أوتار",[1,.9,.8,.7,.6,.5,.4,.3,.25,.2,.15,.1],{a:.12,fa:.2,b0:4,b1:7,vib:7,vr:5.8,vd:.2,r:.15,det:[-4,4]}],
+["تشيلو","أوتار",[1,.85,.7,.5,.4,.3,.2,.12,.08],{a:.15,b0:3,b1:5,vib:6,vd:.3,r:.2,det:[-3,3]}],
+["فرقة وتريات","أوتار",[1,.9,.7,.6,.5,.4,.3,.2,.1],{a:.25,b0:4,b1:5,fa:.4,vib:4,r:.3,det:[-12,-4,4,12]}],
+["جيتار نايلون","أوتار",[1,.6,.25,.12,.06,.03],{a:.003,dec:1.6,s:.002,b0:10,b1:3,fa:.3,r:.2}],
+["جيتار كهربائي","أوتار",[1,.5,.35,.2,.15,.1],{a:.003,dec:1.4,s:.002,b0:12,b1:4,fa:.3,r:.2,det:[0,2]}],
+["هارب","أوتار",[1,.3,.1,.05],{a:.004,dec:2.5,s:.002,b0:8,b1:3,fa:.4,r:.3}],
+["بانجو","أوتار",[1,.8,.7,.5,.4,.3,.2],{a:.003,dec:.5,s:.02,b0:16,b1:6,fa:.1,r:.1,q:1.5}],
+// مفاتيح وإيقاعية
+["بيانو كبير","بيانو ومفاتيح",[1,.55,.3,.2,.12,.08,.05,.03],{a:.004,dec:2.8,s:.002,b0:12,b1:3,fa:.5,r:.3,det:[0,3]}],
+["بيانو قديم","بيانو ومفاتيح",[1,.6,.4,.3,.2,.12,.08],{a:.004,dec:2,s:.002,b0:12,b1:3.5,fa:.4,r:.25,det:[0,14]}],
+["بيانو كهربائي","بيانو ومفاتيح",[1,.05,.45,0,.12,0,.05],{a:.004,dec:2.2,s:.003,b0:10,b1:5,fa:.4,r:.25,det:[0,2]}],
+["هاربسيكورد","بيانو ومفاتيح",[1,.9,.8,.7,.6,.5,.4,.3,.2],{a:.003,dec:.6,s:.01,b0:18,b1:8,fa:.1,r:.08}],
+["كلافينيت","بيانو ومفاتيح",[1,.8,.9,.6,.5,.4,.3],{a:.003,dec:.3,s:.06,b0:12,b1:5,fa:.1,r:.08,q:2}],
+["سيليستا","بيانو ومفاتيح",[1,.1,.05],{a:.003,dec:1.5,s:.002,b0:12,b1:6,r:.3,ip:[[4,.15]]}],
+["فيبرافون","بيانو ومفاتيح",[1],{a:.003,dec:2.5,s:.002,b0:10,b1:8,r:.3,vib:4,vr:5,vd:0,ip:[[4,.25]]}],
+["ماريمبا","بيانو ومفاتيح",[1,0,0,.1],{a:.003,dec:.5,s:.002,b0:6,b1:2.5,r:.1,ip:[[4,.3]]}],
+["زيلوفون","بيانو ومفاتيح",[1,.05],{a:.002,dec:.35,s:.002,b0:10,b1:5,r:.08,ip:[[3,.4],[6,.15]]}],
+["صندوق موسيقى","بيانو ومفاتيح",[1],{a:.002,dec:1.2,s:.002,b0:12,b1:8,r:.2,ip:[[3,.35],[6,.15]]}],
+["جرس","بيانو ومفاتيح",[1,0,0,.2],{a:.002,dec:3,s:.002,b0:12,b1:10,r:.4,ip:[[2.76,.6],[5.4,.4],[8.93,.3],[11.34,.2]]}],
+["طبل معدني","بيانو ومفاتيح",[1,.5],{a:.003,dec:.9,s:.005,b0:8,b1:3,r:.15,ip:[[2,.4],[3,.2]]}],
+// سينث وكلاكس
+["سينث حاد","سينث وكلاكس",S(20,1),{a:.01,b0:8,b1:10,det:[-7,0,7],vol:.8}],
+["موجة مربعة","سينث وكلاكس",O(15,1),{a:.01,b0:8,b1:8,vol:.8}],
+["بيد ناعم","سينث وكلاكس",[1,.4,.2,.1],{a:.4,b0:3,b1:4,fa:.5,r:.4,det:[-9,0,9]}],
+["باص سينث","سينث وكلاكس",S(12,1),{a:.005,dec:.2,s:.6,b0:2,b1:4,r:.08}],
+["8 بت","سينث وكلاكس",O(21,1),{a:.003,r:.03,b0:12,b1:12,vol:.7}],
+["ثيرمين","سينث وكلاكس",[1,.05],{a:.15,r:.2,vib:25,vr:6,vd:.3,b0:8,b1:8}],
+["كلاكس شاحنة","سينث وكلاكس",S(10,.8),{a:.02,s:1,b0:5,b1:5,r:.06,det:[0,386],vol:.8}],
+["كلاكس هوائي","سينث وكلاكس",S(12,.6),{a:.03,s:1,b0:5,b1:5,q:1.5,r:.12,det:[0,386,702],vol:.7}]
+];
+const PRESETS=RAW.map(([n,g,h,o])=>({n,g,h,...D,...o}));
+// داخل تطبيق الأندرويد يُستخدم المحرك الصوتي الأصيل (أسرع)؛ وفي المتصفح يُستخدم Web Audio
+const NATIVE=!!(window.Native&&window.Native.noteOn);
+if(NATIVE){try{Native.setPresets(JSON.stringify(PRESETS));Native.setVolume(+$("vol").value);}catch(e){}}
+
+// ===== محرك الصوت =====
+let ctx,master,noiseBuf;
+function ensureAudio(){
+  if(!ctx){
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const comp=ctx.createDynamicsCompressor();
+    master=ctx.createGain();master.gain.value=+$("vol").value;
+    master.connect(comp);comp.connect(ctx.destination);
+    noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+    const ch=noiseBuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1;
+  }
+  if(ctx.state==="suspended")ctx.resume();
+}
+const waves=new Map();
+function waveOf(p){
+  if(!waves.has(p)){const im=new Float32Array(p.h.length+1);p.h.forEach((v,i)=>im[i+1]=v);
+    waves.set(p,ctx.createPeriodicWave(new Float32Array(im.length),im));}
+  return waves.get(p);
+}
+function startVoice(f,p){
+  const t=ctx.currentTime,all=[];
+  const amp=ctx.createGain();amp.gain.setValueAtTime(0.0001,t);
+  amp.gain.exponentialRampToValueAtTime(p.vol,t+p.a);
+  amp.gain.exponentialRampToValueAtTime(Math.max(p.s*p.vol,0.0002),t+p.a+p.dec);
+  const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.Q.value=p.q;
+  lp.frequency.setValueAtTime(Math.min(f*p.b0,18000),t);
+  lp.frequency.exponentialRampToValueAtTime(Math.min(f*p.b1,18000),t+p.a+p.fa);
+  const oscs=p.det.map(c=>{const o=ctx.createOscillator(),v=ctx.createGain();
+    o.setPeriodicWave(waveOf(p));o.frequency.value=f;o.detune.value=c;
+    v.gain.value=.4/Math.sqrt(p.det.length);o.connect(v);v.connect(lp);o.start(t);all.push(o);return o;});
+  if(p.ip)p.ip.forEach(([r,g])=>{const o=ctx.createOscillator(),v=ctx.createGain();
+    o.frequency.value=f*r;v.gain.setValueAtTime(g*.4,t);
+    v.gain.exponentialRampToValueAtTime(0.0005,t+p.a+p.dec*.6);o.connect(v);v.connect(amp);o.start(t);all.push(o);});
+  if(p.vib){const lfo=ctx.createOscillator(),lg=ctx.createGain();
+    lfo.frequency.value=p.vr;lg.gain.setValueAtTime(0,t+p.vd);lg.gain.linearRampToValueAtTime(p.vib,t+p.vd+.4);
+    lfo.connect(lg);oscs.forEach(o=>lg.connect(o.detune));lfo.start(t);all.push(lfo);}
+  if(p.nz){const n=ctx.createBufferSource(),bp=ctx.createBiquadFilter(),g=ctx.createGain();
+    n.buffer=noiseBuf;n.loop=true;bp.type="bandpass";bp.frequency.value=Math.min(f*2,8000);bp.Q.value=.8;
+    g.gain.value=p.nz;n.connect(bp);bp.connect(g);g.connect(amp);n.start(t);all.push(n);}
+  lp.connect(amp);amp.connect(master);
+  return{stop(){const n=ctx.currentTime;amp.gain.cancelScheduledValues(n);
+    amp.gain.setValueAtTime(Math.max(amp.gain.value,0.0002),n);
+    amp.gain.exponentialRampToValueAtTime(0.0001,n+p.r);
+    all.forEach(o=>o.stop(n+p.r+.05));}};
+}
+
+// ===== الواجهة =====
+const disc=$("disc"),keys=[];
+for(let i=2;i>=0;i--){const b=document.createElement("button");b.className="key";b.dataset.i=i;b.setAttribute("aria-label","زر "+(i+1));disc.appendChild(b);keys[i]=b;}
+function fillDegrees(){
+  for(let i=0;i<3;i++){const s=$("k"+(i+1));
+    s.innerHTML=Array.from({length:10},(_,d)=>`<option value="${d}">${noteName(d)}${d>=5?" (أعلى)":""}</option>`).join("");
+    s.value=state.deg[i];}
+}
+$("root").innerHTML=NAMES.map((n,i)=>`<option value="${i}">${n}</option>`).join("");$("root").value=state.root;
+$("root").onchange=e=>{state.root=+e.target.value;fillDegrees()};
+[1,2,3].forEach(n=>$("k"+n).onchange=e=>{state.deg[n-1]=+e.target.value;fillDegrees()});
+fillDegrees();
+const groups={};PRESETS.forEach((p,i)=>(groups[p.g]=groups[p.g]||[]).push(`<option value="${i}">${p.n}</option>`));
+$("pre").innerHTML=Object.entries(groups).map(([g,o])=>`<optgroup label="${g}">${o.join("")}</optgroup>`).join("");
+$("pre").value=state.preset;$("pre").onchange=e=>state.preset=+e.target.value;
+$("oct").innerHTML=["منخفض (غليظ)","متوسط","عالٍ","عالٍ جداً"].map((n,i)=>`<option value="${i}">${n}</option>`).join("");
+$("oct").value=state.oct;$("oct").onchange=e=>state.oct=+e.target.value;
+$("vol").oninput=e=>{if(master)master.gain.value=+e.target.value;if(NATIVE)Native.setVolume(+e.target.value);};
+
+// القائمة الجانبية
+const side=$("side"),scrim=$("scrim");
+const setSide=o=>{side.classList.toggle("open",o);scrim.classList.toggle("open",o);};
+$("menu").onclick=()=>setSide(true);$("close").onclick=()=>setSide(false);scrim.onclick=()=>setSide(false);
+window.handleBack=()=>{if(side.classList.contains("open")){setSide(false);return true;}return false;};
+
+// التحكم: الصوت يتبع مكان المؤشر/الإصبع
+const active=new Map();
+function press(id,i){if(active.has(id))return;let v;if(NATIVE){Native.noteOn(id,freqOf(state.deg[i]),state.preset);v={stop(){Native.noteOff(id)}};}else{ensureAudio();v=startVoice(freqOf(state.deg[i]),PRESETS[state.preset]);}active.set(id,{i,v});keys[i].classList.add("on");}
+function release(id){const a=active.get(id);if(!a)return;a.v.stop();active.delete(id);
+  if(![...active.values()].some(x=>x.i===a.i))keys[a.i].classList.remove("on");}
+let unlocked=false;const ptr=new Map();
+// تحديد الزر بالهندسة: منطقة أوسع قليلاً من الزر حتى لا ينقطع الصوت عند الانزلاق
+let geo=[];
+function calcGeo(){geo=keys.map(k=>{const r=k.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,r:r.width/2};});}
+addEventListener("resize",calcGeo);addEventListener("load",calcGeo);calcGeo();
+const hit=e=>{if(side.classList.contains("open"))return -1;let best=-1,bd=1e9;
+  geo.forEach((g,i)=>{const dd=Math.hypot(e.clientX-g.x,e.clientY-g.y);if(dd<=g.r*1.5&&dd<bd){bd=dd;best=i;}});return best;};
+const engaged=e=>e.pointerType==="mouse"?((e.buttons&1)||($("hv").checked&&unlocked)):(e.buttons&1);
+function update(e){
+  const id="p"+e.pointerId,cur=ptr.has(id)?ptr.get(id):-1,i=engaged(e)?hit(e):-1;
+  if(i===cur)return;
+  if(cur>-1)release(id);
+  if(i>-1)press(id,i);
+  ptr.set(id,i);
+}
+function stopPtr(e){const id="p"+e.pointerId;release(id);ptr.set(id,-1);}
+addEventListener("pointerdown",e=>{
+  unlocked=true;if(!NATIVE)ensureAudio();
+  if(e.target.hasPointerCapture&&e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId);
+  if(e.target.closest&&e.target.closest(".disc"))e.preventDefault();
+  update(e);
+});
+addEventListener("pointermove",update);
+addEventListener("pointerup",e=>{if(e.pointerType==="mouse")update(e);else stopPtr(e);});
+addEventListener("pointercancel",stopPtr);
+addEventListener("pointerout",e=>{if(!e.relatedTarget)stopPtr(e);});
+addEventListener("contextmenu",e=>e.preventDefault());
+addEventListener("keydown",e=>{if(e.repeat)return;const i="123".indexOf(e.key);if(i>-1){unlocked=true;press("k"+e.key,i);}});
+addEventListener("keyup",e=>{if("123".includes(e.key))release("k"+e.key);});
+addEventListener("blur",()=>[...active.keys()].forEach(release));
+</script>
+</body>
+</html>
